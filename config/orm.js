@@ -1,9 +1,42 @@
 var connection = require("./connection.js");
 
+function printQuestionMarks(num) {
+    var arr = [];
+  
+    for (var i = 0; i < num; i++) {
+      arr.push("?");
+    }
+  
+    return arr.toString();
+};
+
+function objToSql(ob) {
+    var arr = [];
+  
+    // loop through the keys and push the key/value as a string int arr
+    for (var key in ob) {
+      var value = ob[key];
+      // check to skip hidden properties
+      if (Object.hasOwnProperty.call(ob, key)) {
+        // if string with spaces, add quotations (Lana Del Grey => 'Lana Del Grey')
+        if (typeof value === "string" && value.indexOf(" ") >= 0) {
+          value = "'" + value + "'";
+        }
+        // e.g. {name: 'Lana Del Grey'} => ["name='Lana Del Grey'"]
+        // e.g. {sleepy: true} => ["sleepy=true"]
+        arr.push(key + "=" + value);
+      }
+    }
+  
+    // translate array of strings to a single comma-separated string
+    return arr.toString();
+};
+
 var orm = {
 
     selectAll: function (tableInput, cb) {
         var queryString = "SELECT * FROM " + tableInput + ";";
+        console.log(queryString);
         connection.query(queryString, function (err, result) {
             if (err) {
                 throw err;
@@ -15,15 +48,16 @@ var orm = {
         var queryString = "INSERT INTO " + table;
 
         queryString += " (";
-        queryString += col;
+        queryString += col.toString();
         queryString += ") ";
         queryString += "VALUES (";
-        queryString += val;
+        queryString += printQuestionMarks(val.length);
         queryString += ") ";
 
         console.log(queryString);
 
-        connection.query(queryString, function (err, result) {
+        connection.query(queryString, val, function (err, result) {
+            console.log(result);
             if (err) {
                 throw err;
             }
@@ -31,13 +65,11 @@ var orm = {
             cb(result);
         });
     },
-    updateOne: function(table, col, val, condition, cb) {
+    updateOne: function(table, objColVals, condition, cb) {
         var queryString = "UPDATE " + table;
     
         queryString += " SET ";
-        queryString += col;
-        queryString += " = ";
-        queryString += val;
+        queryString += objToSql(objColVals);
         queryString += " WHERE ";
         queryString += condition;
     
@@ -49,7 +81,7 @@ var orm = {
     
           cb(result);
         });
-    }
+      },
 };
 
 module.exports = orm;
